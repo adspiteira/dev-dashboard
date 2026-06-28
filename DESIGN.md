@@ -28,6 +28,10 @@ Launchpad de favoris perso (GitHub Pages). Direction : **cyberpunk, bleu électr
 - ✅ **P3 respiration** : `.desc` `margin-top` 3 → 5 px.
 - ✅ **P3 sous-titre mobile** : header en `display:block` sous 560 px → titre/sous-titre/toolbar s'empilent et s'enroulent proprement.
 - ✅ **P1 badge suppression « coupé »** (mode édition) : `.del` était en `top/right:-7px` (hors carte) → le `clip-path` de `.card` **rognait** la partie qui dépasse. Refait en **rond rouge** (`border-radius:50%`) rentré à `top:7px/right:8px`, dans la zone non rognée + halo de focus clavier. Bonus : colle enfin au texte d'aide « le **rond rouge** pour supprimer ».
+- ✅ **P2 badge ↔ titre long** (régression du fix ci-dessus) : le rond rentré tombait sur la ligne du titre → sur un nom long (« Roadmap CongéLink ») il **chevauchait** le texte. Corrigé : `body.editing .meta{padding-right:30px}` réserve la place du badge **en mode édition seulement** → le titre se coupe/espace avant le rond.
+
+## Dette design — OUVERTE
+- 🟡 **Esthétique du bouton de suppression** : le **rond rouge plein** « fait tache » — action **rare et destructive** qui crie en permanence, l'œil fonce dessus, registre brutal qui jure avec le reste (anguleux, traits fins, néon maîtrisé). Mécaniquement OK, mais à **repenser** : le destructif devrait être **discret au repos** et net seulement au **survol/focus** de la carte. Pistes à comparer en images (frontend-design) : (a) ghost/outline rouge fin révélé au survol ; (b) petit « × » monochrome discret, rouge seulement au survol ; (c) marqueur d'angle anguleux cohérent avec le biseau. **À trancher avec l'utilisateur** (goût cyberpunk bleu, accent déjà dépensé sur la signature).
 
 ## Note technique (piège à connaître)
 **`clip-path` rogne aussi les ENFANTS qui débordent**, pas seulement le focus. Un badge d'angle / tooltip en position absolue avec offset négatif sur une carte biseautée sera **tranché** — il faut le garder *dedans*, ou retirer le `clip-path` du parent.
