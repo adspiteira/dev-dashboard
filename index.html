@@ -74,6 +74,9 @@
   .field select option{background:#101822;color:var(--text)}
   .field input:focus,.field select:focus{border-color:var(--accent)}
   .modal-actions{display:flex;justify-content:space-between;gap:10px;margin-top:22px}
+  .warn{color:#ffcf8f;background:#241c10;border:1px solid #5a4420;border-radius:9px;
+    padding:9px 12px;font-size:12px;line-height:1.5;margin-top:4px}
+  .warn code{background:#000;color:#ffcf8f;padding:1px 5px;border-radius:5px}
   footer{margin-top:54px;color:var(--muted);font-size:12.5px;line-height:1.6}
 </style>
 </head>
@@ -110,6 +113,9 @@
         <input id="f_sec_new" placeholder="Nom de la nouvelle catégorie" style="margin-top:8px;display:none" />
       </div>
       <div class="field"><label>Légende (facultatif)</label><input id="f_desc" placeholder="ex. Suivi des tâches" /></div>
+      <p class="warn">⚠ Ce tableau de bord est <b>public</b>. N'ajoute jamais de <b>lien secret</b> :
+         lien de connexion reçu par email, adresse contenant un jeton (<code>?token=…</code>),
+         ou lien de preview privé. Garde uniquement des pages de connexion normales.</p>
       <div class="modal-actions">
         <button class="btn ghost" id="cancelBtn">Annuler</button>
         <button class="btn primary" id="saveBtn">Enregistrer</button>
@@ -162,6 +168,16 @@
   const withScheme = u => /^https?:\/\//i.test(u) ? u : "https://" + u;
   const domainOf = u => { try { return new URL(withScheme(u)).hostname.replace(/^www\./, ""); } catch { return ""; } };
   const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  // Détecte une adresse qui ressemble à un "lien secret" (jeton, lien de connexion…).
+  function looksSecret(url){
+    let q = "", path = "";
+    try{ const o = new URL(withScheme(url)); q = o.search + o.hash; path = o.pathname; }catch{ return false; }
+    if(/[?&#](access_token|token|api_?key|key|secret|password|pwd|pass|sig|signature|auth|jwt|code|otp|session|sid)=/i.test(q)) return true;
+    if(/\/([A-Za-z0-9_\-]{32,})(?:\/|$)/.test(path)) return true; // long jeton dans le chemin
+    if(/(magic|passwordless|one-?time|verify|confirm|invite|invitation|reset|activate)/i.test(path)
+       && /\/([A-Za-z0-9_\-]{16,})(?:\/|$)/.test(path)) return true;
+    return false;
+  }
   const b64encode = str => btoa(String.fromCharCode(...new TextEncoder().encode(str)));
   const b64decode = b64 => new TextDecoder().decode(Uint8Array.from(atob(b64.replace(/\s/g,"")), c => c.charCodeAt(0)));
 
@@ -295,6 +311,10 @@
     sec = sec || "Autres";
     if(!name || !url){ alert("Il faut au moins un nom et une adresse."); return; }
     if(f_sec.value === "__new__" && !sec){ alert("Donne un nom à la nouvelle catégorie."); return; }
+    if(looksSecret(url) && !confirm(
+      "⚠ Attention — cette adresse ressemble à un LIEN SECRET (elle contient peut-être un jeton "
+      + "d'accès ou un lien de connexion).\n\nCe tableau de bord est PUBLIC : ajouter ce lien "
+      + "pourrait exposer un accès.\n\nL'ajouter quand même ?")) return;
     if(editingId){ Object.assign(links.find(x => x.id === editingId), { name, url, sec, desc }); }
     else { links.push({ id: uid(), name, url, sec, desc }); }
     saveCache(); render(); overlay.classList.remove("open"); syncIfConnected();
