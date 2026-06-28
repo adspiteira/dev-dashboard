@@ -22,8 +22,11 @@ Launchpad de favoris perso (GitHub Pages). Direction : **cyberpunk, bleu électr
 - **reduced-motion** : OK — aucune animation CSS, transitions coupées sous `prefers-reduced-motion`.
 - **contraste** : mesuré — texte atténué `#6e7e9e` sur carte ≈ **4,7:1** (passe 4,5, mais juste).
 
-## À refaire / dette design
-- **P2 — titre des cartes non plafonné** : `.name` retourne à la ligne librement → un nom long (ex. « awwwards inspiration design ») grandit la carte et **désaligne les hauteurs** d'une rangée. Fix : `-webkit-line-clamp:2` (ou nowrap+ellipsis) sur `.name`.
-- **P3** : si le nom passe sur 2 lignes, `.card` en `align-items:center` décale l'icône → envisager `align-items:flex-start` une fois le titre plafonné.
-- **P3** : `margin-top:3px` entre nom et légende un peu serré (4–5px respirerait mieux).
-- **P3 (pré-existant)** : sous-titre « SYSTEM ONLINE… » un peu serré au bord sur mobile.
+## Dette design — SOLDÉE (28 juin 2026)
+- ✅ **P2 titre plafonné** : `-webkit-line-clamp:2` sur `.name` (grille à hauteurs régulières).
+- ✅ **P3 calage icône** : `.card` en `align-items:flex-start` (icône alignée au titre).
+- ✅ **P3 respiration** : `.desc` `margin-top` 3 → 5 px.
+- ✅ **P3 sous-titre mobile** : header en `display:block` sous 560 px → titre/sous-titre/toolbar s'empilent et s'enroulent proprement.
+
+## Note capture (piège headless à connaître)
+Le sous-titre « coupé » vu à `--window-size=390` était un **artefact** : headless Chrome a une largeur de fenêtre **minimale ~500 px**, il rend à ~500 et **recadre** à 390 → faux débordement. Vérifier le mobile à **~520 px** (proxy breakpoint) ou en émulation d'appareil, jamais en `--window-size=390` brut.
