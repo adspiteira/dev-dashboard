@@ -12,24 +12,6 @@
     "desc": ""
   },
   {
-    "sec": "Code & déploiement",
-    "name": "GitHub",
-    "url": "https://github.com/",
-    "desc": "Mes dépôts"
-  },
-  {
-    "sec": "Code & déploiement",
-    "name": "Vercel",
-    "url": "https://vercel.com/dashboard",
-    "desc": "Déploiements"
-  },
-  {
-    "sec": "Code & déploiement",
-    "name": "StackBlitz",
-    "url": "https://stackblitz.com/@adspiteira",
-    "desc": "Bac à sable Vite"
-  },
-  {
     "sec": "Mes projets",
     "name": "Telandros",
     "url": "https://github.com/adspiteira/Telandros",
@@ -46,6 +28,24 @@
     "name": "Skills",
     "url": "https://github.com/adspiteira/claude-skills",
     "desc": ""
+  },
+  {
+    "sec": "Code & déploiement",
+    "name": "GitHub",
+    "url": "https://github.com/",
+    "desc": "Mes dépôts"
+  },
+  {
+    "sec": "Code & déploiement",
+    "name": "Vercel",
+    "url": "https://vercel.com/dashboard",
+    "desc": "Déploiements"
+  },
+  {
+    "sec": "Code & déploiement",
+    "name": "StackBlitz",
+    "url": "https://stackblitz.com/@adspiteira",
+    "desc": "Bac à sable Vite"
   },
   {
     "sec": "Backend & bases de données",
