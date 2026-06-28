@@ -1,21 +1,33 @@
 [
   {
-    "sec": "Mes projets",
-    "name": "Telandros",
-    "url": "https://github.com/adspiteira/Telandros",
-    "desc": "github.com/adspiteira/Telandros"
-  },
-  {
     "sec": "Mes Roadmaps",
     "name": "CongéLink",
     "url": "https://github.com/adspiteira/CongeLink/blob/main/ROADMAP.md",
     "desc": "Vue d'ensemble du projet"
   },
   {
+    "sec": "Mes Roadmaps",
+    "name": "Telandros",
+    "url": "https://github.com/adspiteira/Telandros/blob/main/ROADMAP.md",
+    "desc": ""
+  },
+  {
+    "sec": "Mes projets",
+    "name": "Telandros",
+    "url": "https://github.com/adspiteira/Telandros",
+    "desc": "github.com/adspiteira/Telandros"
+  },
+  {
     "sec": "Mes projets",
     "name": "Dépôt",
     "url": "https://github.com/adspiteira/CongeLink",
     "desc": "github.com/adspiteira/CongeLink"
+  },
+  {
+    "sec": "Mes projets",
+    "name": "Skills",
+    "url": "https://github.com/adspiteira/claude-skills",
+    "desc": ""
   },
   {
     "sec": "Code & déploiement",
@@ -69,18 +81,6 @@
     "sec": "Design & inspiration",
     "name": "awwwards inspiration design",
     "url": "https://www.awwwards.com/inspiration_search/",
-    "desc": ""
-  },
-  {
-    "sec": "Mes projets",
-    "name": "Skills",
-    "url": "https://github.com/adspiteira/claude-skills",
-    "desc": ""
-  },
-  {
-    "sec": "Mes Roadmaps",
-    "name": "Telandros",
-    "url": "https://github.com/adspiteira/Telandros/blob/main/ROADMAP.md",
     "desc": ""
   }
 ]
