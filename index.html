@@ -64,6 +64,8 @@
     box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--sec,var(--cyan)) 55%,transparent)}
   .secbtn:focus-visible{outline:none;color:var(--sec,var(--cyan));box-shadow:inset 0 0 0 2px var(--sec,var(--cyan))}
   .secbtn:disabled{opacity:.3;cursor:default}
+  /* coupe le double-tap-zoom accidentel sur les éléments cliquables (garde le pincer-zoom volontaire) */
+  body,.btn,.card,.del,.secbtn{touch-action:manipulation}
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(238px,1fr));gap:13px}
   .card{position:relative;display:flex;align-items:flex-start;gap:14px;background:var(--panel);
     border:1px solid var(--border);padding:15px 17px 15px 18px;text-decoration:none;color:inherit;
