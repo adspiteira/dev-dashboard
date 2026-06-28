@@ -1,17 +1,5 @@
 [
   {
-    "sec": "Mes Roadmaps",
-    "name": "CongéLink",
-    "url": "https://github.com/adspiteira/CongeLink/blob/main/ROADMAP.md",
-    "desc": "Vue d'ensemble du projet"
-  },
-  {
-    "sec": "Mes Roadmaps",
-    "name": "Telandros",
-    "url": "https://github.com/adspiteira/Telandros/blob/main/ROADMAP.md",
-    "desc": ""
-  },
-  {
     "sec": "Mes projets",
     "name": "Telandros",
     "url": "https://github.com/adspiteira/Telandros",
@@ -27,6 +15,18 @@
     "sec": "Mes projets",
     "name": "Skills",
     "url": "https://github.com/adspiteira/claude-skills",
+    "desc": ""
+  },
+  {
+    "sec": "Mes Roadmaps",
+    "name": "CongéLink",
+    "url": "https://github.com/adspiteira/CongeLink/blob/main/ROADMAP.md",
+    "desc": "Vue d'ensemble du projet"
+  },
+  {
+    "sec": "Mes Roadmaps",
+    "name": "Telandros",
+    "url": "https://github.com/adspiteira/Telandros/blob/main/ROADMAP.md",
     "desc": ""
   },
   {
