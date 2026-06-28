@@ -260,6 +260,7 @@
   let saving = false;         // une sauvegarde GitHub est en cours ? (évite les envois concurrents)
   let queued = false;         // un changement est arrivé pendant une sauvegarde -> à rejouer
   let syncState = "";         // dernier état du bouton (pour savoir quoi faire au clic)
+  let lastSyncError = "";     // dernier message d'erreur de synchro déjà signalé (évite d'alerter en boucle)
   const setDirty = v => { dirty = v; try{ localStorage.setItem(DIRTY_KEY, v ? "1" : ""); }catch{} };
 
   const board = document.getElementById("board");
@@ -291,21 +292,31 @@
     if(saving){ queued = true; return; }        // une sauvegarde tourne déjà -> on la rejouera à la fin
     saving = true; setSync("saving");
     try{
-      // sha à jour ; si l'auth échoue (401/403) on remonte l'erreur, sinon on tente avec le sha connu
-      let sha = fileSha;
-      try { const cur = await ghGet(); sha = cur.sha; }
-      catch(e){ if(/\b(401|403)\b/.test(e.message)) throw e; }
-      let res = await putFavorites(sha);
-      if(res.status === 409 || res.status === 422){   // conflit de version -> on relit le sha et on réessaie UNE fois
-        try { const cur = await ghGet(); res = await putFavorites(cur.sha); }
-        catch(e2){ if(/\b(401|403)\b/.test(e2.message)) throw e2; }
+      // On NE re-télécharge PAS le sha avant chaque PUT : l'API "contents" de GitHub est
+      // eventually-consistent et renvoie parfois un sha PÉRIMÉ juste après un commit rapide -> 409.
+      // On fait confiance au sha renvoyé par le dernier PUT (fileSha). On ne (re)lit le sha que si
+      // on ne le connaît pas encore, ou en cas de vrai conflit (un autre appareil a écrit entre-temps).
+      if(fileSha === null){
+        try { const cur = await ghGet(); fileSha = cur.sha; }
+        catch(e){ if(/\b(401|403)\b/.test(e.message)) throw e; }
       }
-      if(!res.ok) throw new Error("PUT " + res.status);
-      fileSha = (await res.json()).content.sha;
-      setDirty(false); setSync("synced");
+      let res = await putFavorites(fileSha);
+      for(let i = 0; i < 3 && (res.status === 409 || res.status === 422); i++){  // conflit -> relit le sha et réessaie
+        const cur = await ghGet(); res = await putFavorites(cur.sha);
+      }
+      if(!res.ok){
+        let detail = ""; try{ detail = (await res.json()).message || ""; }catch{}
+        throw new Error("PUT " + res.status + (detail ? " — " + detail : ""));
+      }
+      fileSha = (await res.json()).content.sha;       // sha autoritatif pour le prochain PUT
+      setDirty(false); lastSyncError = ""; setSync("synced");
     }catch(e){
       const auth = /\b(401|403)\b/.test(e.message);
-      setSync(auth ? "auth" : "error", e.message);   // auth -> reconnecter ; sinon -> non sauvegardé (on GARDE le local)
+      setSync(auth ? "auth" : "error", e.message);    // auth -> reconnecter ; sinon -> non sauvegardé (le local est GARDÉ)
+      if(!auth && e.message !== lastSyncError){        // 1 alerte par message distinct (diagnostic + rassure)
+        lastSyncError = e.message;
+        alert("⚠ Sauvegarde GitHub échouée :\n\n" + e.message + "\n\nTa modif reste là, rien n'est perdu.");
+      }
     }finally{
       saving = false;
       if(queued){ queued = false; ghPut(); }          // rejoue si un changement est arrivé entre-temps
