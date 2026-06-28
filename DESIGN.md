@@ -31,13 +31,26 @@ Launchpad de favoris perso (GitHub Pages). Direction : **cyberpunk, bleu électr
 - ✅ **P2 badge ↔ titre long** (régression du fix ci-dessus) : le rond rentré tombait sur la ligne du titre → sur un nom long (« Roadmap CongéLink ») il **chevauchait** le texte. Corrigé : `body.editing .meta{padding-right:30px}` réserve la place du badge **en mode édition seulement** → le titre se coupe/espace avant le rond.
 - ✅ **Esthétique du bouton de suppression** : le rond rouge plein « faisait tache » (action rare/destructive qui criait en permanence) ET un **rond jurait** avec le système tout anguleux. Refait après comparaison de 3 pistes en images : **au repos un simple `×` gris** (couleur `--muted`, discret), **au survol/focus une petite puce biseautée rouge** (`clip-path` comme les icônes, contour via `box-shadow` inset → propre malgré le clip-path + focus clavier visible). Le rouge n'apparaît qu'au moment d'agir. Piste retenue **B « anguleux »** (× monochrome discret mais trouvable) — A (fantôme) et C (onglet) écartées.
 
+### Passe design-plus (diagnose + fix · 28 juin 2026, capture avant/après)
+- ✅ **Placeholder « (duplicated) »** : sous-titre StackBlitz `Vite (duplicated)` (texte de travail laissé) → **`Bac à sable Vite`**. Corrigé dans les **deux sources** : `DEFAULTS` inline (`index.html`) **et** `favorites.json`.
+- ✅ **Cohérence texte ↔ UI du bouton supprimer** : l'aide d'édition disait encore « clique … **le rond rouge** pour la supprimer » — **vestige** de l'ancienne version ronde, jamais mis à jour quand le badge est passé au **`×` anguleux** (direction B ci-dessus). Le texte est maintenant **« le × rouge »** → mot ↔ élément alignés. *Leçon : quand on change la FORME d'un contrôle, grep le texte d'aide qui le décrit.*
+- ✅ **Icônes de marque génériques** : Firebase affichait le **« G » de Google**, Neon un **globe** — voir « Icônes » ci-dessous.
+
 ## Pistes écartées (badge suppression)
 - **A — fantôme** (anneau rouge quasi effacé au repos) : trop discret, risque de ne pas voir qu'on peut supprimer.
 - **C — onglet biseauté rouge sombre** : stylé mais reste un peu rouge au repos (moins calme que B).
 - **Rond (border-radius:50%)** sous toutes ses formes : **corps étranger** dans un système 100 % anguleux (cartes/icônes biseautées). Ne pas y revenir.
 
 ## Dette design — OUVERTE
-_(aucune pour l'instant)_
+- ⚪ **Dépendance favicon Google** (faible) : hors les 2 overlays Firebase/Neon, les icônes restent servies par Google (1 appel/carte, casse hors-ligne). Voir « Icônes — stratégie ».
+- ⚪ **Sous-titres incohérents** : « Skills » et « Telandros » (roadmap) ont `desc` vide → fallback domaine nu « github.com » alors que les voisins montrent le chemin complet. Cosmétique — remplir `desc` ou harmoniser le fallback.
+
+## Icônes — stratégie (décision 28 juin 2026)
+- **Par défaut** : favicon-par-domaine via `google.com/s2/favicons?domain=<hostname>` (un service externe, simple). Limite : pour certains **sous-domaines**, le service renvoie une icône **générique** — le « G » Google pour `console.firebase.google.com`, un **globe** pour `console.neon.tech`. Le repli `onerror` ne sauve pas (le favicon générique se charge en 200, ce n'est pas une erreur).
+- **Override par domaine** (`ICON_OVERRIDE` dans `index.html`) : map `hostname → URL d'icône`, avec repli sur le service.
+  - **Firebase** → **flamme SVG inline** (data-URI, `fill:#FFA000`) : robuste et **hors-ligne**, car même `firebase.google.com` renvoie le « G ».
+  - **Neon** → favicon de la **racine de marque** `neon.tech` (logo Neon réel) au lieu du sous-domaine console.
+- **Dette ouverte (faible)** : tout sauf les 2 overrides dépend encore du service Google (1 appel par carte, casse hors-ligne). Si on veut couper la dépendance, basculer les icônes restantes en SVG inline / assets locaux.
 
 ## Note technique (piège à connaître)
 **`clip-path` rogne aussi les ENFANTS qui débordent**, pas seulement le focus. Un badge d'angle / tooltip en position absolue avec offset négatif sur une carte biseautée sera **tranché** — il faut le garder *dedans*, ou retirer le `clip-path` du parent.

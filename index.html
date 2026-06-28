@@ -136,7 +136,7 @@
     <div>
       <div class="title"><span class="dot">▸</span> Dev — Tableau de bord</div>
       <div class="subtitle" id="hello"></div>
-      <div class="edithint">Mode modification : clique une carte pour l'éditer, ou le rond rouge pour la supprimer.</div>
+      <div class="edithint">Mode modification : clique une carte pour l'éditer, ou le × rouge pour la supprimer.</div>
     </div>
     <div class="toolbar">
       <button class="btn primary" id="addBtn">＋ Ajouter</button>
@@ -221,7 +221,7 @@
     { sec:"Mes projets", name:"Dépôt Telandros",   desc:"github.com/adspiteira/Telandros", url:"https://github.com/adspiteira/Telandros" },
     { sec:"Code & déploiement", name:"GitHub",     desc:"Mes dépôts", url:"https://github.com/adspiteira" },
     { sec:"Code & déploiement", name:"Vercel",     desc:"Déploiements", url:"https://vercel.com/dashboard" },
-    { sec:"Code & déploiement", name:"StackBlitz", desc:"Vite (duplicated)", url:"https://stackblitz.com/@adspiteira" },
+    { sec:"Code & déploiement", name:"StackBlitz", desc:"Bac à sable Vite", url:"https://stackblitz.com/@adspiteira" },
     { sec:"Backend & bases de données", name:"Neon Console", desc:"Postgres serverless", url:"https://console.neon.tech" },
     { sec:"Backend & bases de données", name:"Supabase",     desc:"Backend / Postgres", url:"https://supabase.com/dashboard" },
     { sec:"Backend & bases de données", name:"Firebase",     desc:"Console Firebase", url:"https://console.firebase.google.com" },
@@ -234,6 +234,16 @@
   const uid = () => "x" + Math.random().toString(36).slice(2, 9);
   const withScheme = u => /^https?:\/\//i.test(u) ? u : "https://" + u;
   const domainOf = u => { try { return new URL(withScheme(u)).hostname.replace(/^www\./, ""); } catch { return ""; } };
+  const faviconURL = d => `https://www.google.com/s2/favicons?sz=64&domain=${encodeURIComponent(d)}`;
+  const svgIcon = svg => "data:image/svg+xml," + encodeURIComponent(svg);
+  // Le favicon-par-hostname renvoie une icône générique pour certains sous-domaines
+  // (le « G » de Google pour console.firebase.google.com, un globe pour console.neon.tech).
+  // On force l'icône de marque pour ces cas, en gardant le service en repli pour le reste.
+  const ICON_OVERRIDE = {
+    "console.firebase.google.com": svgIcon("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='#FFA000'><path d='M3.89 15.672 6.255.461A.542.542 0 0 1 7.27.288l2.543 4.771zm16.794 3.692-2.25-14a.54.54 0 0 0-.919-.295L3.316 19.365l7.856 4.427a1.621 1.621 0 0 0 1.588 0zM14.3 7.147l-1.82-3.482a.542.542 0 0 0-.96 0L3.53 17.984z'/></svg>"),
+    "console.neon.tech": faviconURL("neon.tech"),
+  };
+  const iconFor = dom => ICON_OVERRIDE[dom] || faviconURL(dom);
   const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   // Détecte une adresse qui ressemble à un "lien secret" (jeton, lien de connexion…).
   function looksSecret(url){
@@ -353,7 +363,7 @@
         a.className = "card";
         a.href = withScheme(l.url); a.target = "_blank"; a.rel = "noopener";
         a.innerHTML = `
-          <span class="icon"><img alt="" src="https://www.google.com/s2/favicons?sz=64&domain=${encodeURIComponent(dom)}"
+          <span class="icon"><img alt="" src="${iconFor(dom)}"
                 onerror="this.replaceWith(document.createTextNode('${letter}'))" /></span>
           <span class="meta"><span class="name">${esc(l.name)}</span>
           <span class="desc">${esc(l.desc || dom)}</span></span>
