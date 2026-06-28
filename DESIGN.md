@@ -25,6 +25,14 @@ Launchpad de favoris perso (GitHub Pages). Direction : **cyberpunk, bleu électr
 - ⚪ **Effet de bord assumé** : le liseré de couleur suit la **position** (`PALETTE[ci]`), pas le nom — réordonner **décale les couleurs** (Roadmaps en tête → liseré cyan au lieu de magenta). Cohérent (chaque section reste distincte). Si gênant un jour : dériver `--sec` d'un **hash du nom** de catégorie (mais ça change les couleurs actuelles).
 - ✅ **Cibles tactiles** : flèches **44 px sur mobile** (28 px desktop), gap élargi à 10 px pour éviter les fausses touches — le 28 px a été **jugé trop petit au doigt sur vrai iPhone**, corrigé dans le média `max-width:560px`. *Émulation Playwright iPhone confirmée **fidèle au vrai écran** par l'utilisateur → proxy de test fiable avant déploiement.*
 
+## Icône & écran d'accueil — PWA (28 juin 2026)
+- **Besoin** : ajouter l'app à l'écran d'accueil iPhone avec une **vraie icône maison** (pas l'emoji/capture d'Apple) et une ouverture **plein écran**.
+- **Direction d'icône retenue** : **« // » cyan + magenta** (barres inclinées arrondies, glow diffus — version douce « B0 »). Choix en 2 temps, comparé en images : 3 directions (A — triangle ▸ + viseur ; **B — slash //** ; C — carte HUD) → **B** ; puis 3 variantes de B (B1 anguleuse/biseautée, B2 viseur, B3 socle néon) → **B0 douce** retenue par préférence. Le `//` reprend l'ADN du système (eyebrows `// CATÉGORIE`, barre de tête cyan→magenta).
+- **Pistes écartées** : A (triangle, trop générique sans le viseur) ; C (trop détaillée, terne en petit) ; B1/B2/B3 (l'anguleuse B1 était ma reco mais l'utilisateur préfère la douceur de B0).
+- **Technique de génération** : PNG **plein cadre** (fond bord-à-bord, **pas de coins arrondis** — iOS applique son masque squircle) rendus via **Playwright** depuis un HTML en unités `vmin` → tailles **180** (`apple-touch-icon`), **192** + **512** (manifest). `// ` centré avec marge → safe pour le masque iOS et le `maskable` Android.
+- **Réglages PWA** (dans `<head>` + `site.webmanifest`) : `display:standalone`, `apple-mobile-web-app-capable`, `apple-mobile-web-app-title="Dashboard"`, `theme-color`/`background_color = #05070e`, `viewport-fit=cover`. **status-bar `black`** (opaque, *pas* `black-translucent`) → le contenu ne passe pas sous l'heure/batterie, pas de chevauchement.
+- **Mise à jour (mythe du “figé”)** : **aucun Service Worker** → la page n'est PAS figée, elle se **recharge depuis GitHub à chaque ouverture** (cache navigateur de quelques min ; *pull-to-refresh* pour forcer). Seuls **l'icône et le nom** sont figés au moment où l'utilisateur épingle le raccourci (changer l'icône = re-créer le raccourci).
+
 ## Plancher qualité — état vérifié (28 juin 2026)
 - **responsive mobile** : VU — corrigé le 28/06 (cartes empilées, plus de débordement).
 - **focus clavier** : VU dans le code — piège `clip-path` **traité** (cartes en `box-shadow` inset ; boutons non biseautés en `outline`).
