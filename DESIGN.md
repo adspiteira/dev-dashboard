@@ -27,6 +27,10 @@ Launchpad de favoris perso (GitHub Pages). Direction : **cyberpunk, bleu électr
 - ✅ **P3 calage icône** : `.card` en `align-items:flex-start` (icône alignée au titre).
 - ✅ **P3 respiration** : `.desc` `margin-top` 3 → 5 px.
 - ✅ **P3 sous-titre mobile** : header en `display:block` sous 560 px → titre/sous-titre/toolbar s'empilent et s'enroulent proprement.
+- ✅ **P1 badge suppression « coupé »** (mode édition) : `.del` était en `top/right:-7px` (hors carte) → le `clip-path` de `.card` **rognait** la partie qui dépasse. Refait en **rond rouge** (`border-radius:50%`) rentré à `top:7px/right:8px`, dans la zone non rognée + halo de focus clavier. Bonus : colle enfin au texte d'aide « le **rond rouge** pour supprimer ».
+
+## Note technique (piège à connaître)
+**`clip-path` rogne aussi les ENFANTS qui débordent**, pas seulement le focus. Un badge d'angle / tooltip en position absolue avec offset négatif sur une carte biseautée sera **tranché** — il faut le garder *dedans*, ou retirer le `clip-path` du parent.
 
 ## Note capture (piège headless à connaître)
 Le sous-titre « coupé » vu à `--window-size=390` était un **artefact** : headless Chrome a une largeur de fenêtre **minimale ~500 px**, il rend à ~500 et **recadre** à 390 → faux débordement. Vérifier le mobile à **~520 px** (proxy breakpoint) ou en émulation d'appareil, jamais en `--window-size=390` brut.
