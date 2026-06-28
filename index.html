@@ -214,6 +214,7 @@
   const GH = { owner:"adspiteira", repo:"dev-dashboard", path:"favorites.json", branch:"main" };
   const TOKEN_KEY = "devDashboardToken";
   const CACHE_KEY = "devDashboardCache_v2";
+  const DIRTY_KEY = "devDashboardDirty";   // "1" = des changements locaux ne sont PAS encore poussés sur GitHub
 
   const DEFAULTS = [
     { sec:"Mes projets", name:"Roadmap Telandros", desc:"Vue d'ensemble du projet", url:"https://github.com/adspiteira/Telandros/blob/main/ROADMAP.md" },
@@ -255,6 +256,11 @@
   let links = [];
   let editingId = null;
   let fileSha = null;
+  let dirty = false;          // y a-t-il des changements locaux non synchronisés ?
+  let saving = false;         // une sauvegarde GitHub est en cours ? (évite les envois concurrents)
+  let queued = false;         // un changement est arrivé pendant une sauvegarde -> à rejouer
+  let syncState = "";         // dernier état du bouton (pour savoir quoi faire au clic)
+  const setDirty = v => { dirty = v; try{ localStorage.setItem(DIRTY_KEY, v ? "1" : ""); }catch{} };
 
   const board = document.getElementById("board");
   const overlay = document.getElementById("overlay");
@@ -274,30 +280,48 @@
     const j = await res.json();
     return { data: JSON.parse(b64decode(j.content)), sha: j.sha };
   }
+  function putFavorites(sha){
+    const body = { message:"chore: maj favoris", content:b64encode(JSON.stringify(serialize(), null, 2)), branch:GH.branch };
+    if(sha) body.sha = sha;
+    return fetch(`https://api.github.com/repos/${GH.owner}/${GH.repo}/contents/${encodeURIComponent(GH.path)}`,
+      { method:"PUT", headers: ghHeaders(), body: JSON.stringify(body) });
+  }
   async function ghPut(){
     if(!getToken()) return;
-    setSync("saving");
+    if(saving){ queued = true; return; }        // une sauvegarde tourne déjà -> on la rejouera à la fin
+    saving = true; setSync("saving");
     try{
+      // sha à jour ; si l'auth échoue (401/403) on remonte l'erreur, sinon on tente avec le sha connu
       let sha = fileSha;
-      try { const cur = await ghGet(); sha = cur.sha; } catch {}
-      const body = { message:"chore: maj favoris", content:b64encode(JSON.stringify(serialize(), null, 2)), branch:GH.branch };
-      if(sha) body.sha = sha;
-      const res = await fetch(`https://api.github.com/repos/${GH.owner}/${GH.repo}/contents/${encodeURIComponent(GH.path)}`,
-        { method:"PUT", headers: ghHeaders(), body: JSON.stringify(body) });
+      try { const cur = await ghGet(); sha = cur.sha; }
+      catch(e){ if(/\b(401|403)\b/.test(e.message)) throw e; }
+      let res = await putFavorites(sha);
+      if(res.status === 409 || res.status === 422){   // conflit de version -> on relit le sha et on réessaie UNE fois
+        try { const cur = await ghGet(); res = await putFavorites(cur.sha); }
+        catch(e2){ if(/\b(401|403)\b/.test(e2.message)) throw e2; }
+      }
       if(!res.ok) throw new Error("PUT " + res.status);
       fileSha = (await res.json()).content.sha;
-      setSync("synced");
-    }catch(e){ setSync("error", e.message); }
+      setDirty(false); setSync("synced");
+    }catch(e){
+      const auth = /\b(401|403)\b/.test(e.message);
+      setSync(auth ? "auth" : "error", e.message);   // auth -> reconnecter ; sinon -> non sauvegardé (on GARDE le local)
+    }finally{
+      saving = false;
+      if(queued){ queued = false; ghPut(); }          // rejoue si un changement est arrivé entre-temps
+    }
   }
   function syncIfConnected(){ if(getToken()) ghPut(); }
 
   /* ─── Statut du bouton GitHub ─── */
   const ghBtn = document.getElementById("ghBtn");
   function setSync(state, msg){
+    syncState = state || (getToken() ? "synced" : "off");
     ghBtn.classList.remove("ok","err");
     if(state === "saving"){ ghBtn.textContent = "⟳ Synchro…"; }
     else if(state === "synced"){ ghBtn.textContent = "✓ Synchronisé"; ghBtn.classList.add("ok"); }
-    else if(state === "error"){ ghBtn.textContent = "⚠ Reconnecter"; ghBtn.classList.add("err"); }
+    else if(state === "auth"){ ghBtn.textContent = "⚠ Reconnecter"; ghBtn.classList.add("err"); }
+    else if(state === "error"){ ghBtn.textContent = "⚠ Non sauvegardé"; ghBtn.classList.add("err"); }
     else { ghBtn.textContent = getToken() ? "✓ Synchronisé" : "⚲ Connecter GitHub";
            if(getToken()) ghBtn.classList.add("ok"); }
   }
@@ -339,7 +363,7 @@
   function removeLink(id){
     const l = links.find(x => x.id === id);
     if(l && confirm(`Supprimer « ${l.name} » ?`)){
-      links = links.filter(x => x.id !== id); saveCache(); render(); syncIfConnected();
+      links = links.filter(x => x.id !== id); saveCache(); setDirty(true); render(); syncIfConnected();
     }
   }
 
@@ -383,7 +407,7 @@
       + "pourrait exposer un accès.\n\nL'ajouter quand même ?")) return;
     if(editingId){ Object.assign(links.find(x => x.id === editingId), { name, url, sec, desc }); }
     else { links.push({ id: uid(), name, url, sec, desc }); }
-    saveCache(); render(); overlay.classList.remove("open"); syncIfConnected();
+    saveCache(); setDirty(true); render(); overlay.classList.remove("open"); syncIfConnected();
   }
 
   /* ─── Export / Import ─── */
@@ -396,7 +420,7 @@
     const r = new FileReader();
     r.onload = () => { try{
       const a = JSON.parse(r.result); if(!Array.isArray(a)) throw 0;
-      links = adopt(a); saveCache(); render(); syncIfConnected(); alert("Favoris importés ✔");
+      links = adopt(a); saveCache(); setDirty(true); render(); syncIfConnected(); alert("Favoris importés ✔");
     }catch{ alert("Fichier invalide."); } };
     r.readAsText(file);
   }
@@ -415,14 +439,25 @@
   importBtn.onclick = () => importFile.click();
   importFile.onchange = e => { if(e.target.files[0]) importLinks(e.target.files[0]); };
 
-  ghBtn.onclick = () => { gh_token.value = getToken(); ghOverlay.classList.add("open"); gh_token.focus(); };
+  ghBtn.onclick = () => {
+    // si la dernière sauvegarde a juste échoué (hors auth), un clic RÉESSAIE de pousser le local — il n'ouvre PAS la reconnexion
+    if(syncState === "error" && getToken()){ ghPut(); return; }
+    gh_token.value = getToken(); ghOverlay.classList.add("open"); gh_token.focus();
+  };
   document.getElementById("ghSave").onclick = async () => {
     const t = gh_token.value.trim();
     if(!t){ alert("Colle un jeton, ou clique Déconnecter."); return; }
-    localStorage.setItem(TOKEN_KEY, t); ghOverlay.classList.remove("open"); setSync("saving");
-    try{ const r = await ghGet(); if(r.data){ links = adopt(r.data); fileSha = r.sha; saveCache(); render(); }
-         setSync("synced"); }
-    catch(e){ setSync("error", e.message); alert("Connexion impossible : vérifie le jeton et ses droits.\n("+e.message+")"); }
+    localStorage.setItem(TOKEN_KEY, t); ghOverlay.classList.remove("open");
+    if(dirty){
+      // IMPORTANT : des changements locaux ne sont pas sauvegardés -> on les POUSSE, on n'écrase JAMAIS le local par le distant
+      await ghPut();
+    } else {
+      setSync("saving");
+      try{ const r = await ghGet(); fileSha = r.sha; if(Array.isArray(r.data)){ links = adopt(r.data); saveCache(); render(); }
+           setSync("synced"); }
+      catch(e){ const auth = /\b(401|403)\b/.test(e.message); setSync(auth ? "auth" : "error", e.message);
+                alert("Connexion impossible : vérifie le jeton et ses droits.\n("+e.message+")"); }
+    }
   };
   document.getElementById("ghDisconnect").onclick = () => {
     localStorage.removeItem(TOKEN_KEY); ghOverlay.classList.remove("open"); setSync();
@@ -440,13 +475,17 @@
     return null;
   }
   async function init(){
+    dirty = !!localStorage.getItem(DIRTY_KEY);   // des changements d'une session précédente attendent peut-être d'être poussés
     links = adopt(readCache() || DEFAULTS);
-    render(); setSync();
+    render(); setSync(dirty && getToken() ? "error" : undefined);
     try{
-      let data = null;
-      if(getToken()){ const r = await ghGet(); data = r.data; fileSha = r.sha; }
-      else { const res = await fetch("favorites.json?t=" + Date.now(), { cache:"no-store" }); if(res.ok) data = await res.json(); }
-      if(Array.isArray(data)){ links = adopt(data); saveCache(); render(); }
+      if(getToken()){
+        if(dirty){ await ghPut(); }              // le cache contient des changements non poussés -> on POUSSE (on n'écrase pas par le distant)
+        else { const r = await ghGet(); fileSha = r.sha; if(Array.isArray(r.data)){ links = adopt(r.data); saveCache(); render(); } }
+      } else {
+        const res = await fetch("favorites.json?t=" + Date.now(), { cache:"no-store" });
+        if(res.ok){ const data = await res.json(); if(Array.isArray(data)){ links = adopt(data); saveCache(); render(); } }
+      }
     }catch{ /* hors-ligne ou fichier local : on garde le cache */ }
   }
 
