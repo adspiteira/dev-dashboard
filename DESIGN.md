@@ -23,7 +23,7 @@ Launchpad de favoris perso (GitHub Pages). Direction : **cyberpunk, bleu électr
 - **Détails soignés** : flèches `.secbtn` biseautées (`clip-path`), discrètes (`--muted`) au repos, accent `--sec` au survol/focus ; **focus clavier en `box-shadow` inset** (pas d'`outline`, sinon coupé par le `clip-path`) ; flèche désactivée (`disabled`, opacity .3) aux bords ; placées après le trait `::after` (flex:1) via `order:1` → alignées à droite ; **refocus de la flèche après re-render** pour enchaîner au clavier.
 - **Vérifié sur images** : édition desktop + mobile (flèches au bord droit, bornes désactivées, pas de débordement), état normal (flèches absentes, vue propre) ; logique testée hors-ligne (réordonnancement, ordre interne, bornes no-op, aucune carte perdue).
 - ⚪ **Effet de bord assumé** : le liseré de couleur suit la **position** (`PALETTE[ci]`), pas le nom — réordonner **décale les couleurs** (Roadmaps en tête → liseré cyan au lieu de magenta). Cohérent (chaque section reste distincte). Si gênant un jour : dériver `--sec` d'un **hash du nom** de catégorie (mais ça change les couleurs actuelles).
-- ⚪ **Cibles tactiles** : flèches à 28 px (< 44 px recommandé). Acceptable pour une action rare en mode édition ; à agrandir si usage mobile fréquent.
+- ✅ **Cibles tactiles** : flèches **44 px sur mobile** (28 px desktop), gap élargi à 10 px pour éviter les fausses touches — le 28 px a été **jugé trop petit au doigt sur vrai iPhone**, corrigé dans le média `max-width:560px`. *Émulation Playwright iPhone confirmée **fidèle au vrai écran** par l'utilisateur → proxy de test fiable avant déploiement.*
 
 ## Plancher qualité — état vérifié (28 juin 2026)
 - **responsive mobile** : VU — corrigé le 28/06 (cartes empilées, plus de débordement).
