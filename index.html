@@ -20,7 +20,7 @@
   .title .dot{color:var(--accent)}
   .subtitle{color:var(--muted);margin-top:8px;font-size:14.5px}
   .subtitle b{color:var(--text);font-weight:600}
-  .toolbar{display:flex;gap:10px;flex-wrap:wrap}
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
   .btn{font:inherit;font-size:14px;font-weight:600;color:var(--text);background:var(--card);
     border:1px solid var(--border);border-radius:10px;padding:10px 16px;cursor:pointer;
     transition:background .14s,border-color .14s,transform .1s}
@@ -30,6 +30,8 @@
   .btn.primary:hover{filter:brightness(1.07);background:var(--accent)}
   .btn.ghost{background:transparent}
   .btn.small{padding:7px 12px;font-size:13px}
+  .btn.ok{color:var(--accent);border-color:#2a5d4a}
+  .btn.err{color:#ff8a80;border-color:#7a3a36}
 
   .section{margin-top:34px}
   .section h2{font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);
@@ -55,13 +57,13 @@
   .edithint{display:none;color:var(--accent);font-size:13px;margin-top:6px}
   body.editing .edithint{display:block}
 
-  /* Modal */
   .overlay{position:fixed;inset:0;background:rgba(3,7,12,.6);backdrop-filter:blur(3px);
     display:none;place-items:center;padding:20px;z-index:10}
   .overlay.open{display:grid}
-  .modal{width:100%;max-width:440px;background:#101822;border:1px solid var(--border);border-radius:16px;padding:24px}
+  .modal{width:100%;max-width:460px;background:#101822;border:1px solid var(--border);border-radius:16px;padding:24px}
   .modal h3{font-size:18px;margin-bottom:4px}
-  .modal p{color:var(--muted);font-size:13px;margin-bottom:18px}
+  .modal p{color:var(--muted);font-size:13px;margin-bottom:14px;line-height:1.55}
+  .modal a{color:var(--accent)}
   .field{margin-bottom:14px}
   .field label{display:block;font-size:12.5px;color:var(--muted);margin-bottom:6px;font-weight:600}
   .field input,.field select{width:100%;font:inherit;font-size:14.5px;color:var(--text);background:#0b121a;
@@ -85,6 +87,7 @@
     <div class="toolbar">
       <button class="btn primary" id="addBtn">＋ Ajouter</button>
       <button class="btn" id="editBtn">Modifier</button>
+      <button class="btn small" id="ghBtn">GitHub…</button>
       <button class="btn ghost small" id="exportBtn">Exporter</button>
       <button class="btn ghost small" id="importBtn">Importer</button>
       <input type="file" id="importFile" accept="application/json" hidden />
@@ -93,10 +96,7 @@
 
   <main id="board"></main>
 
-  <footer>
-    Tes favoris sont enregistrés dans ce navigateur (Chrome). Pense à <b>Exporter</b> de temps en temps :
-    ça télécharge une sauvegarde que tu peux ré-<b>Importer</b> (ou ouvrir sur un autre ordinateur).
-  </footer>
+  <footer id="foot"></footer>
 
   <!-- Formulaire ajout / édition -->
   <div class="overlay" id="overlay">
@@ -117,10 +117,32 @@
     </div>
   </div>
 
-<script>
-  const KEY = "devDashboardLinks_v1";
+  <!-- Connexion GitHub -->
+  <div class="overlay" id="ghOverlay">
+    <div class="modal">
+      <h3>Synchroniser avec GitHub</h3>
+      <p>Colle un <b>jeton d'accès</b> : tes favoris se sauvegarderont automatiquement sur GitHub et
+         apparaîtront sur tous tes ordinateurs. Le jeton reste dans ce navigateur, jamais en ligne.</p>
+      <div class="field"><label>Jeton d'accès (fine-grained)</label>
+        <input id="gh_token" type="password" placeholder="github_pat_..." /></div>
+      <p>
+        Créer le jeton → <a href="https://github.com/settings/personal-access-tokens/new" target="_blank">github.com/settings/personal-access-tokens/new</a><br>
+        • <b>Repository access</b> : Only select repositories → <b>dev-dashboard</b><br>
+        • <b>Permissions</b> → Repository permissions → <b>Contents : Read and write</b>
+      </p>
+      <div class="modal-actions">
+        <button class="btn ghost" id="ghDisconnect">Déconnecter</button>
+        <button class="btn primary" id="ghSave">Enregistrer</button>
+      </div>
+    </div>
+  </div>
 
-  // Favoris par défaut (au tout premier lancement seulement).
+<script>
+  /* ─── Configuration dépôt GitHub (stockage des favoris) ─── */
+  const GH = { owner:"adspiteira", repo:"dev-dashboard", path:"favorites.json", branch:"main" };
+  const TOKEN_KEY = "devDashboardToken";
+  const CACHE_KEY = "devDashboardCache_v2";
+
   const DEFAULTS = [
     { sec:"Mes projets", name:"Roadmap Telandros", desc:"Vue d'ensemble du projet", url:"https://github.com/adspiteira/Telandros/blob/main/ROADMAP.md" },
     { sec:"Mes projets", name:"Dépôt Telandros",   desc:"github.com/adspiteira/Telandros", url:"https://github.com/adspiteira/Telandros" },
@@ -139,24 +161,66 @@
   const uid = () => "x" + Math.random().toString(36).slice(2, 9);
   const withScheme = u => /^https?:\/\//i.test(u) ? u : "https://" + u;
   const domainOf = u => { try { return new URL(withScheme(u)).hostname.replace(/^www\./, ""); } catch { return ""; } };
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  const b64encode = str => btoa(String.fromCharCode(...new TextEncoder().encode(str)));
+  const b64decode = b64 => new TextDecoder().decode(Uint8Array.from(atob(b64.replace(/\s/g,"")), c => c.charCodeAt(0)));
 
-  let links = load();
+  const getToken = () => localStorage.getItem(TOKEN_KEY) || "";
+  const serialize = () => links.map(({sec,name,url,desc}) => ({sec,name,url,desc}));
+  const saveCache = () => localStorage.setItem(CACHE_KEY, JSON.stringify(serialize()));
+  const adopt = arr => arr.map(o => ({ ...o, id: uid() }));
+
+  let links = [];
   let editingId = null;
-
-  function load(){
-    try{
-      const raw = localStorage.getItem(KEY);
-      if(raw){ const a = JSON.parse(raw); a.forEach(l => l.id ||= uid()); return a; }
-    }catch{}
-    const seed = DEFAULTS.map(l => ({ ...l, id: uid() }));
-    localStorage.setItem(KEY, JSON.stringify(seed));
-    return seed;
-  }
-  const save = () => localStorage.setItem(KEY, JSON.stringify(links));
+  let fileSha = null;
 
   const board = document.getElementById("board");
   const overlay = document.getElementById("overlay");
+  const ghOverlay = document.getElementById("ghOverlay");
 
+  /* ─── GitHub API ─── */
+  const ghHeaders = () => ({
+    "Authorization": "Bearer " + getToken(),
+    "Accept": "application/vnd.github+json",
+    "X-GitHub-Api-Version": "2022-11-28",
+  });
+  async function ghGet(){
+    const url = `https://api.github.com/repos/${GH.owner}/${GH.repo}/contents/${encodeURIComponent(GH.path)}?ref=${GH.branch}`;
+    const res = await fetch(url, { headers: ghHeaders() });
+    if(res.status === 404) return { data:null, sha:null };
+    if(!res.ok) throw new Error("GET " + res.status);
+    const j = await res.json();
+    return { data: JSON.parse(b64decode(j.content)), sha: j.sha };
+  }
+  async function ghPut(){
+    if(!getToken()) return;
+    setSync("saving");
+    try{
+      let sha = fileSha;
+      try { const cur = await ghGet(); sha = cur.sha; } catch {}
+      const body = { message:"chore: maj favoris", content:b64encode(JSON.stringify(serialize(), null, 2)), branch:GH.branch };
+      if(sha) body.sha = sha;
+      const res = await fetch(`https://api.github.com/repos/${GH.owner}/${GH.repo}/contents/${encodeURIComponent(GH.path)}`,
+        { method:"PUT", headers: ghHeaders(), body: JSON.stringify(body) });
+      if(!res.ok) throw new Error("PUT " + res.status);
+      fileSha = (await res.json()).content.sha;
+      setSync("synced");
+    }catch(e){ setSync("error", e.message); }
+  }
+  function syncIfConnected(){ if(getToken()) ghPut(); }
+
+  /* ─── Statut du bouton GitHub ─── */
+  const ghBtn = document.getElementById("ghBtn");
+  function setSync(state, msg){
+    ghBtn.classList.remove("ok","err");
+    if(state === "saving"){ ghBtn.textContent = "⟳ Synchro…"; }
+    else if(state === "synced"){ ghBtn.textContent = "✓ Synchronisé"; ghBtn.classList.add("ok"); }
+    else if(state === "error"){ ghBtn.textContent = "⚠ Reconnecter"; ghBtn.classList.add("err"); }
+    else { ghBtn.textContent = getToken() ? "✓ Synchronisé" : "⚲ Connecter GitHub";
+           if(getToken()) ghBtn.classList.add("ok"); }
+  }
+
+  /* ─── Rendu ─── */
   function render(){
     board.innerHTML = "";
     const cats = [...new Set(links.map(l => l.sec))];
@@ -168,7 +232,7 @@
       const grid = document.createElement("div");
       grid.className = "grid";
       links.filter(l => l.sec === sec).forEach(l => {
-        const dom = l.domain || domainOf(l.url);
+        const dom = domainOf(l.url);
         const letter = (l.name.trim()[0] || "•").toUpperCase();
         const a = document.createElement("a");
         a.className = "card";
@@ -176,10 +240,8 @@
         a.innerHTML = `
           <span class="icon"><img alt="" src="https://www.google.com/s2/favicons?sz=64&domain=${encodeURIComponent(dom)}"
                 onerror="this.replaceWith(document.createTextNode('${letter}'))" /></span>
-          <span class="meta">
-            <span class="name">${esc(l.name)}</span>
-            <span class="desc">${esc(l.desc || dom)}</span>
-          </span>
+          <span class="meta"><span class="name">${esc(l.name)}</span>
+          <span class="desc">${esc(l.desc || dom)}</span></span>
           <button class="del" title="Supprimer" data-del="${l.id}">×</button>`;
         a.addEventListener("click", e => {
           if(e.target.closest(".del")){ e.preventDefault(); return removeLink(l.id); }
@@ -191,14 +253,15 @@
       board.appendChild(section);
     });
   }
-  const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
   function removeLink(id){
     const l = links.find(x => x.id === id);
-    if(l && confirm(`Supprimer « ${l.name} » ?`)){ links = links.filter(x => x.id !== id); save(); render(); }
+    if(l && confirm(`Supprimer « ${l.name} » ?`)){
+      links = links.filter(x => x.id !== id); saveCache(); render(); syncIfConnected();
+    }
   }
 
-  // ── Formulaire ──
+  /* ─── Formulaire ajout / édition ─── */
   function populateCats(selected){
     const cats = [...new Set(links.map(l => l.sec))];
     if(selected && !cats.includes(selected)) cats.push(selected);
@@ -212,11 +275,7 @@
     f_sec_new.style.display = isNew ? "block" : "none";
     if(isNew) f_sec_new.focus();
   }
-  function openModal(title){
-    document.getElementById("modalTitle").textContent = title;
-    overlay.classList.add("open");
-    document.getElementById("f_name").focus();
-  }
+  function openModal(title){ document.getElementById("modalTitle").textContent = title; overlay.classList.add("open"); f_name.focus(); }
   function openAdd(){
     editingId = null;
     f_name.value = f_url.value = f_desc.value = f_sec_new.value = "";
@@ -230,49 +289,37 @@
     populateCats(l.sec);
     openModal("Modifier le favori");
   }
-  function closeModal(){ overlay.classList.remove("open"); }
   function saveForm(){
     const name = f_name.value.trim(), url = f_url.value.trim(), desc = f_desc.value.trim();
     let sec = f_sec.value === "__new__" ? f_sec_new.value.trim() : f_sec.value;
     sec = sec || "Autres";
     if(!name || !url){ alert("Il faut au moins un nom et une adresse."); return; }
     if(f_sec.value === "__new__" && !sec){ alert("Donne un nom à la nouvelle catégorie."); return; }
-    if(editingId){
-      const l = links.find(x => x.id === editingId);
-      Object.assign(l, { name, url, sec, desc, domain: domainOf(url) });
-    } else {
-      links.push({ id: uid(), name, url, sec, desc, domain: domainOf(url) });
-    }
-    save(); render(); closeModal();
+    if(editingId){ Object.assign(links.find(x => x.id === editingId), { name, url, sec, desc }); }
+    else { links.push({ id: uid(), name, url, sec, desc }); }
+    saveCache(); render(); overlay.classList.remove("open"); syncIfConnected();
   }
 
-  // ── Export / Import ──
+  /* ─── Export / Import ─── */
   function exportLinks(){
-    const blob = new Blob([JSON.stringify(links, null, 2)], { type:"application/json" });
+    const blob = new Blob([JSON.stringify(serialize(), null, 2)], { type:"application/json" });
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob); a.download = "dev-favoris.json"; a.click();
-    URL.revokeObjectURL(a.href);
+    a.href = URL.createObjectURL(blob); a.download = "dev-favoris.json"; a.click(); URL.revokeObjectURL(a.href);
   }
   function importLinks(file){
     const r = new FileReader();
-    r.onload = () => {
-      try{
-        const a = JSON.parse(r.result);
-        if(!Array.isArray(a)) throw 0;
-        a.forEach(l => l.id ||= uid());
-        links = a; save(); render(); alert("Favoris importés ✔");
-      }catch{ alert("Fichier invalide."); }
-    };
+    r.onload = () => { try{
+      const a = JSON.parse(r.result); if(!Array.isArray(a)) throw 0;
+      links = adopt(a); saveCache(); render(); syncIfConnected(); alert("Favoris importés ✔");
+    }catch{ alert("Fichier invalide."); } };
     r.readAsText(file);
   }
 
-  // ── Branchements ──
+  /* ─── Branchements ─── */
   addBtn.onclick = openAdd;
   saveBtn.onclick = saveForm;
-  cancelBtn.onclick = closeModal;
+  cancelBtn.onclick = () => overlay.classList.remove("open");
   f_sec.onchange = toggleNewCat;
-  overlay.onclick = e => { if(e.target === overlay) closeModal(); };
-  document.addEventListener("keydown", e => { if(e.key === "Escape") closeModal(); });
   editBtn.onclick = () => {
     const on = document.body.classList.toggle("editing");
     editBtn.textContent = on ? "Terminé" : "Modifier";
@@ -282,15 +329,51 @@
   importBtn.onclick = () => importFile.click();
   importFile.onchange = e => { if(e.target.files[0]) importLinks(e.target.files[0]); };
 
-  // Bonjour + date
+  ghBtn.onclick = () => { gh_token.value = getToken(); ghOverlay.classList.add("open"); gh_token.focus(); };
+  document.getElementById("ghSave").onclick = async () => {
+    const t = gh_token.value.trim();
+    if(!t){ alert("Colle un jeton, ou clique Déconnecter."); return; }
+    localStorage.setItem(TOKEN_KEY, t); ghOverlay.classList.remove("open"); setSync("saving");
+    try{ const r = await ghGet(); if(r.data){ links = adopt(r.data); fileSha = r.sha; saveCache(); render(); }
+         setSync("synced"); }
+    catch(e){ setSync("error", e.message); alert("Connexion impossible : vérifie le jeton et ses droits.\n("+e.message+")"); }
+  };
+  document.getElementById("ghDisconnect").onclick = () => {
+    localStorage.removeItem(TOKEN_KEY); ghOverlay.classList.remove("open"); setSync();
+  };
+  document.querySelectorAll(".overlay").forEach(o => o.addEventListener("click", e => { if(e.target === o) o.classList.remove("open"); }));
+  document.addEventListener("keydown", e => { if(e.key === "Escape") document.querySelectorAll(".overlay.open").forEach(o => o.classList.remove("open")); });
+
+  /* ─── Démarrage ─── */
+  function readCache(){
+    let raw = localStorage.getItem(CACHE_KEY);
+    if(raw) return JSON.parse(raw);
+    const old = localStorage.getItem("devDashboardLinks_v1"); // migration ancienne version
+    if(old){ const a = JSON.parse(old).map(({sec,name,url,desc}) => ({sec,name,url,desc}));
+             localStorage.setItem(CACHE_KEY, JSON.stringify(a)); return a; }
+    return null;
+  }
+  async function init(){
+    links = adopt(readCache() || DEFAULTS);
+    render(); setSync();
+    try{
+      let data = null;
+      if(getToken()){ const r = await ghGet(); data = r.data; fileSha = r.sha; }
+      else { const res = await fetch("favorites.json?t=" + Date.now(), { cache:"no-store" }); if(res.ok) data = await res.json(); }
+      if(Array.isArray(data)){ links = adopt(data); saveCache(); render(); }
+    }catch{ /* hors-ligne ou fichier local : on garde le cache */ }
+  }
+
   const now = new Date();
   const j = now.toLocaleDateString("fr-FR", { weekday:"long", day:"numeric", month:"long" });
   const h = now.getHours();
   const salut = h < 6 ? "Bonne nuit" : h < 12 ? "Bonjour" : h < 18 ? "Bon après-midi" : "Bonsoir";
-  document.getElementById("hello").innerHTML =
-    `${salut} — <b>${j}</b>. Clique un outil pour l'ouvrir (même profil Chrome, aucune reconnexion).`;
+  document.getElementById("hello").innerHTML = `${salut} — <b>${j}</b>. Clique un outil pour l'ouvrir.`;
+  document.getElementById("foot").innerHTML =
+    "Connecté à GitHub, tes ajouts/suppressions se sauvegardent tout seuls et apparaissent sur tous tes ordinateurs. " +
+    "Sans connexion, ils restent dans ce navigateur (Exporter pour sauvegarder).";
 
-  render();
+  init();
 </script>
 </body>
 </html>

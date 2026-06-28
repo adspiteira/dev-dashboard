@@ -1,0 +1,13 @@
+[
+  { "sec": "Mes projets", "name": "Roadmap Telandros", "desc": "Vue d'ensemble du projet", "url": "https://github.com/adspiteira/Telandros/blob/main/ROADMAP.md" },
+  { "sec": "Mes projets", "name": "Dépôt Telandros", "desc": "github.com/adspiteira/Telandros", "url": "https://github.com/adspiteira/Telandros" },
+  { "sec": "Code & déploiement", "name": "GitHub", "desc": "Mes dépôts", "url": "https://github.com/adspiteira" },
+  { "sec": "Code & déploiement", "name": "Vercel", "desc": "Déploiements", "url": "https://vercel.com/dashboard" },
+  { "sec": "Code & déploiement", "name": "StackBlitz", "desc": "Vite (duplicated)", "url": "https://stackblitz.com/@adspiteira" },
+  { "sec": "Backend & bases de données", "name": "Neon Console", "desc": "Postgres serverless", "url": "https://console.neon.tech" },
+  { "sec": "Backend & bases de données", "name": "Supabase", "desc": "Backend / Postgres", "url": "https://supabase.com/dashboard" },
+  { "sec": "Backend & bases de données", "name": "Firebase", "desc": "Console Firebase", "url": "https://console.firebase.google.com" },
+  { "sec": "Paiement & infra", "name": "Stripe", "desc": "Paiements", "url": "https://dashboard.stripe.com" },
+  { "sec": "Paiement & infra", "name": "OVHcloud", "desc": "Espace client", "url": "https://www.ovh.com/manager/" },
+  { "sec": "Claude", "name": "Claude — skill apex", "desc": "Récupérer le skill apex", "url": "https://claude.ai" }
+]
