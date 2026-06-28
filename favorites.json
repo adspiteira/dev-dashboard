@@ -82,5 +82,11 @@
     "name": "awwwards inspiration design",
     "url": "https://www.awwwards.com/inspiration_search/",
     "desc": ""
+  },
+  {
+    "sec": "Mes projets",
+    "name": "Skills Github",
+    "url": "https://github.com/adspiteira/claude-skills",
+    "desc": ""
   }
 ]
