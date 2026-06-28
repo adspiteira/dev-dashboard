@@ -116,6 +116,13 @@
   @media (max-width:560px){body{padding:28px 18px 64px;overflow-x:hidden}.grid{grid-template-columns:1fr}
     header{display:block;margin-bottom:32px}.toolbar{margin-top:18px}.subtitle{overflow-wrap:anywhere}}
   footer{margin-top:58px;font-family:var(--mono);color:var(--muted);font-size:11px;line-height:1.7;letter-spacing:.02em}
+  .tokennote{margin-top:16px;font-family:var(--mono);color:var(--muted);font-size:11px;line-height:1.7;letter-spacing:.02em;max-width:700px}
+  .tokennote .k{color:var(--ink)}
+  .tokennote details{margin-top:6px}
+  .tokennote summary{cursor:pointer;color:var(--cyan);letter-spacing:.04em;width:fit-content}
+  .tokennote ol{margin:8px 0 0 16px;padding:0}
+  .tokennote li{margin-bottom:3px}
+  .tokennote a{color:var(--cyan)}
 </style>
 </head>
 <body>
@@ -138,6 +145,21 @@
   <main id="board"></main>
 
   <footer id="foot"></footer>
+
+  <aside class="tokennote">
+    🔑 Connexion GitHub : le jeton (token) expire le <span class="k">29 juin 2027</span>. Quand le bouton passe à « ⚠ Reconnecter », c'est qu'il a expiré — tes favoris restent là, il suffit d'en refaire un.
+    <details>
+      <summary>Comment renouveler (≈ 2 min)</summary>
+      <ol>
+        <li>Va sur <a href="https://github.com/settings/personal-access-tokens" target="_blank" rel="noopener">github.com/settings/personal-access-tokens</a>, puis <span class="k">Generate new token</span>.</li>
+        <li>Donne un nom, mets une expiration (~1 an), <span class="k">Resource owner</span> = ton compte.</li>
+        <li><span class="k">Repository access</span> → <em>Only select repositories</em> → choisis <span class="k">dev-dashboard</span>.</li>
+        <li><span class="k">Permissions</span> → <em>Repository permissions</em> → <span class="k">Contents</span> : <em>Read and write</em>.</li>
+        <li>Clique <span class="k">Generate token</span>, puis <span class="k">copie</span> le jeton.</li>
+        <li>Reviens ici, clique <span class="k">⚠ Reconnecter</span> (ou « Connecter GitHub ») et colle le jeton.</li>
+      </ol>
+    </details>
+  </aside>
 
   <!-- Formulaire ajout / édition -->
   <div class="overlay" id="overlay">
