@@ -274,8 +274,9 @@
     "X-GitHub-Api-Version": "2022-11-28",
   });
   async function ghGet(){
-    const url = `https://api.github.com/repos/${GH.owner}/${GH.repo}/contents/${encodeURIComponent(GH.path)}?ref=${GH.branch}`;
-    const res = await fetch(url, { headers: ghHeaders() });
+    // cache-buster + no-store : sans ça, l'API renvoyait un sha PÉRIMÉ depuis le cache navigateur -> conflit 409 en boucle
+    const url = `https://api.github.com/repos/${GH.owner}/${GH.repo}/contents/${encodeURIComponent(GH.path)}?ref=${GH.branch}&_=${Date.now()}`;
+    const res = await fetch(url, { headers: ghHeaders(), cache: "no-store" });
     if(res.status === 404) return { data:null, sha:null };
     if(!res.ok) throw new Error("GET " + res.status);
     const j = await res.json();
@@ -301,7 +302,8 @@
         catch(e){ if(/\b(401|403)\b/.test(e.message)) throw e; }
       }
       let res = await putFavorites(fileSha);
-      for(let i = 0; i < 3 && (res.status === 409 || res.status === 422); i++){  // conflit -> relit le sha et réessaie
+      for(let i = 0; i < 4 && (res.status === 409 || res.status === 422); i++){  // conflit -> relit le sha (sans cache) et réessaie
+        await new Promise(r => setTimeout(r, 300 * (i + 1)));   // petit délai : laisse cache/réplica se rafraîchir
         const cur = await ghGet(); res = await putFavorites(cur.sha);
       }
       if(!res.ok){
