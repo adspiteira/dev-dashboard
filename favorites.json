@@ -66,6 +66,12 @@
     "desc": "Console Firebase"
   },
   {
+    "sec": "Design & inspiration",
+    "name": "awwwards inspiration design",
+    "url": "https://www.awwwards.com/inspiration_search/",
+    "desc": ""
+  },
+  {
     "sec": "Paiement & infra",
     "name": "Stripe",
     "url": "https://dashboard.stripe.com",
@@ -76,11 +82,5 @@
     "name": "OVHcloud",
     "url": "https://www.ovh.com/manager/",
     "desc": "Espace client"
-  },
-  {
-    "sec": "Design & inspiration",
-    "name": "awwwards inspiration design",
-    "url": "https://www.awwwards.com/inspiration_search/",
-    "desc": ""
   }
 ]
