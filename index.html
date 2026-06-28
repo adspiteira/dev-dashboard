@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>🚀 Dev — Tableau de bord</title>
+<style>
+  :root{
+    --bg:#0b0f14; --card:#131b24; --card-hover:#18222e; --border:#213040;
+    --text:#e6edf3; --muted:#8a99a8; --accent:#3fd6a8;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",system-ui,sans-serif;
+    background:radial-gradient(1200px 600px at 20% -10%,#16202b 0%,var(--bg) 55%) fixed,var(--bg);
+    color:var(--text);min-height:100vh;padding:40px clamp(20px,6vw,88px) 80px;-webkit-font-smoothing:antialiased;
+  }
+  header{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap;margin-bottom:36px}
+  .title{font-size:clamp(26px,4vw,38px);font-weight:700;letter-spacing:-.02em;display:flex;align-items:baseline;gap:12px}
+  .title .dot{color:var(--accent)}
+  .subtitle{color:var(--muted);margin-top:8px;font-size:14.5px}
+  .subtitle b{color:var(--text);font-weight:600}
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap}
+  .btn{font:inherit;font-size:14px;font-weight:600;color:var(--text);background:var(--card);
+    border:1px solid var(--border);border-radius:10px;padding:10px 16px;cursor:pointer;
+    transition:background .14s,border-color .14s,transform .1s}
+  .btn:hover{background:var(--card-hover);border-color:#2c4055}
+  .btn:active{transform:translateY(1px)}
+  .btn.primary{background:var(--accent);color:#06231a;border-color:transparent}
+  .btn.primary:hover{filter:brightness(1.07);background:var(--accent)}
+  .btn.ghost{background:transparent}
+  .btn.small{padding:7px 12px;font-size:13px}
+
+  .section{margin-top:34px}
+  .section h2{font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);
+    margin-bottom:14px;display:flex;align-items:center;gap:10px}
+  .section h2::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--sec,var(--accent));
+    box-shadow:0 0 12px var(--sec,var(--accent))}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+  .card{position:relative;display:flex;align-items:center;gap:14px;background:var(--card);
+    border:1px solid var(--border);border-radius:14px;padding:16px 18px;text-decoration:none;color:inherit;
+    transition:transform .14s,background .14s,border-color .14s}
+  .card:hover{background:var(--card-hover);border-color:#2c4055;transform:translateY(-3px)}
+  .icon{width:38px;height:38px;flex:0 0 38px;border-radius:9px;background:#1c2733;display:grid;place-items:center;
+    overflow:hidden;font-weight:700;font-size:17px;color:var(--text)}
+  .icon img{width:24px;height:24px;display:block}
+  .meta{min-width:0}
+  .name{font-weight:600;font-size:15px;line-height:1.25}
+  .desc{color:var(--muted);font-size:12.5px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .del{position:absolute;top:-8px;right:-8px;width:24px;height:24px;border-radius:50%;border:none;
+    background:#e5534b;color:#fff;font-size:15px;line-height:1;cursor:pointer;display:none;place-items:center;
+    box-shadow:0 2px 8px rgba(0,0,0,.4)}
+  body.editing .del{display:grid}
+  body.editing .card{cursor:pointer;border-style:dashed}
+  .edithint{display:none;color:var(--accent);font-size:13px;margin-top:6px}
+  body.editing .edithint{display:block}
+
+  /* Modal */
+  .overlay{position:fixed;inset:0;background:rgba(3,7,12,.6);backdrop-filter:blur(3px);
+    display:none;place-items:center;padding:20px;z-index:10}
+  .overlay.open{display:grid}
+  .modal{width:100%;max-width:440px;background:#101822;border:1px solid var(--border);border-radius:16px;padding:24px}
+  .modal h3{font-size:18px;margin-bottom:4px}
+  .modal p{color:var(--muted);font-size:13px;margin-bottom:18px}
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:12.5px;color:var(--muted);margin-bottom:6px;font-weight:600}
+  .field input,.field select{width:100%;font:inherit;font-size:14.5px;color:var(--text);background:#0b121a;
+    border:1px solid var(--border);border-radius:9px;padding:11px 13px;outline:none}
+  .field select{appearance:none;-webkit-appearance:none;cursor:pointer;padding-right:34px;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8'><path fill='%238a99a8' d='M0 0h12L6 8z'/></svg>");
+    background-repeat:no-repeat;background-position:right 13px center}
+  .field select option{background:#101822;color:var(--text)}
+  .field input:focus,.field select:focus{border-color:var(--accent)}
+  .modal-actions{display:flex;justify-content:space-between;gap:10px;margin-top:22px}
+  footer{margin-top:54px;color:var(--muted);font-size:12.5px;line-height:1.6}
+</style>
+</head>
+<body>
+  <header>
+    <div>
+      <div class="title"><span class="dot">▸</span> Dev — Tableau de bord</div>
+      <div class="subtitle" id="hello"></div>
+      <div class="edithint">Mode modification : clique une carte pour l'éditer, ou le rond rouge pour la supprimer.</div>
+    </div>
+    <div class="toolbar">
+      <button class="btn primary" id="addBtn">＋ Ajouter</button>
+      <button class="btn" id="editBtn">Modifier</button>
+      <button class="btn ghost small" id="exportBtn">Exporter</button>
+      <button class="btn ghost small" id="importBtn">Importer</button>
+      <input type="file" id="importFile" accept="application/json" hidden />
+    </div>
+  </header>
+
+  <main id="board"></main>
+
+  <footer>
+    Tes favoris sont enregistrés dans ce navigateur (Chrome). Pense à <b>Exporter</b> de temps en temps :
+    ça télécharge une sauvegarde que tu peux ré-<b>Importer</b> (ou ouvrir sur un autre ordinateur).
+  </footer>
+
+  <!-- Formulaire ajout / édition -->
+  <div class="overlay" id="overlay">
+    <div class="modal">
+      <h3 id="modalTitle">Ajouter un favori</h3>
+      <p>Renseigne au moins le nom et l'adresse. Le logo est trouvé automatiquement.</p>
+      <div class="field"><label>Nom</label><input id="f_name" placeholder="ex. Linear" /></div>
+      <div class="field"><label>Adresse (URL)</label><input id="f_url" placeholder="ex. linear.app" /></div>
+      <div class="field"><label>Catégorie</label>
+        <select id="f_sec"></select>
+        <input id="f_sec_new" placeholder="Nom de la nouvelle catégorie" style="margin-top:8px;display:none" />
+      </div>
+      <div class="field"><label>Légende (facultatif)</label><input id="f_desc" placeholder="ex. Suivi des tâches" /></div>
+      <div class="modal-actions">
+        <button class="btn ghost" id="cancelBtn">Annuler</button>
+        <button class="btn primary" id="saveBtn">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const KEY = "devDashboardLinks_v1";
+
+  // Favoris par défaut (au tout premier lancement seulement).
+  const DEFAULTS = [
+    { sec:"Mes projets", name:"Roadmap Telandros", desc:"Vue d'ensemble du projet", url:"https://github.com/adspiteira/Telandros/blob/main/ROADMAP.md" },
+    { sec:"Mes projets", name:"Dépôt Telandros",   desc:"github.com/adspiteira/Telandros", url:"https://github.com/adspiteira/Telandros" },
+    { sec:"Code & déploiement", name:"GitHub",     desc:"Mes dépôts", url:"https://github.com/adspiteira" },
+    { sec:"Code & déploiement", name:"Vercel",     desc:"Déploiements", url:"https://vercel.com/dashboard" },
+    { sec:"Code & déploiement", name:"StackBlitz", desc:"Vite (duplicated)", url:"https://stackblitz.com/@adspiteira" },
+    { sec:"Backend & bases de données", name:"Neon Console", desc:"Postgres serverless", url:"https://console.neon.tech" },
+    { sec:"Backend & bases de données", name:"Supabase",     desc:"Backend / Postgres", url:"https://supabase.com/dashboard" },
+    { sec:"Backend & bases de données", name:"Firebase",     desc:"Console Firebase", url:"https://console.firebase.google.com" },
+    { sec:"Paiement & infra", name:"Stripe",    desc:"Paiements", url:"https://dashboard.stripe.com" },
+    { sec:"Paiement & infra", name:"OVHcloud",  desc:"Espace client", url:"https://www.ovh.com/manager/" },
+    { sec:"Claude", name:"Claude — skill apex", desc:"Récupérer le skill apex", url:"https://claude.ai" },
+  ];
+  const PALETTE = ["#3fd6a8","#6ea8fe","#b694ff","#ffb454","#ff7a59","#5ad1e6","#f06595"];
+
+  const uid = () => "x" + Math.random().toString(36).slice(2, 9);
+  const withScheme = u => /^https?:\/\//i.test(u) ? u : "https://" + u;
+  const domainOf = u => { try { return new URL(withScheme(u)).hostname.replace(/^www\./, ""); } catch { return ""; } };
+
+  let links = load();
+  let editingId = null;
+
+  function load(){
+    try{
+      const raw = localStorage.getItem(KEY);
+      if(raw){ const a = JSON.parse(raw); a.forEach(l => l.id ||= uid()); return a; }
+    }catch{}
+    const seed = DEFAULTS.map(l => ({ ...l, id: uid() }));
+    localStorage.setItem(KEY, JSON.stringify(seed));
+    return seed;
+  }
+  const save = () => localStorage.setItem(KEY, JSON.stringify(links));
+
+  const board = document.getElementById("board");
+  const overlay = document.getElementById("overlay");
+
+  function render(){
+    board.innerHTML = "";
+    const cats = [...new Set(links.map(l => l.sec))];
+    cats.forEach((sec, ci) => {
+      const section = document.createElement("section");
+      section.className = "section";
+      section.style.setProperty("--sec", PALETTE[ci % PALETTE.length]);
+      section.innerHTML = `<h2>${esc(sec)}</h2>`;
+      const grid = document.createElement("div");
+      grid.className = "grid";
+      links.filter(l => l.sec === sec).forEach(l => {
+        const dom = l.domain || domainOf(l.url);
+        const letter = (l.name.trim()[0] || "•").toUpperCase();
+        const a = document.createElement("a");
+        a.className = "card";
+        a.href = withScheme(l.url); a.target = "_blank"; a.rel = "noopener";
+        a.innerHTML = `
+          <span class="icon"><img alt="" src="https://www.google.com/s2/favicons?sz=64&domain=${encodeURIComponent(dom)}"
+                onerror="this.replaceWith(document.createTextNode('${letter}'))" /></span>
+          <span class="meta">
+            <span class="name">${esc(l.name)}</span>
+            <span class="desc">${esc(l.desc || dom)}</span>
+          </span>
+          <button class="del" title="Supprimer" data-del="${l.id}">×</button>`;
+        a.addEventListener("click", e => {
+          if(e.target.closest(".del")){ e.preventDefault(); return removeLink(l.id); }
+          if(document.body.classList.contains("editing")){ e.preventDefault(); openEdit(l.id); }
+        });
+        grid.appendChild(a);
+      });
+      section.appendChild(grid);
+      board.appendChild(section);
+    });
+  }
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+  function removeLink(id){
+    const l = links.find(x => x.id === id);
+    if(l && confirm(`Supprimer « ${l.name} » ?`)){ links = links.filter(x => x.id !== id); save(); render(); }
+  }
+
+  // ── Formulaire ──
+  function populateCats(selected){
+    const cats = [...new Set(links.map(l => l.sec))];
+    if(selected && !cats.includes(selected)) cats.push(selected);
+    f_sec.innerHTML = cats.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join("")
+      + `<option value="__new__">＋ Nouvelle catégorie…</option>`;
+    f_sec.value = (selected && cats.includes(selected)) ? selected : (cats[0] || "__new__");
+    toggleNewCat();
+  }
+  function toggleNewCat(){
+    const isNew = f_sec.value === "__new__";
+    f_sec_new.style.display = isNew ? "block" : "none";
+    if(isNew) f_sec_new.focus();
+  }
+  function openModal(title){
+    document.getElementById("modalTitle").textContent = title;
+    overlay.classList.add("open");
+    document.getElementById("f_name").focus();
+  }
+  function openAdd(){
+    editingId = null;
+    f_name.value = f_url.value = f_desc.value = f_sec_new.value = "";
+    populateCats(links.length ? links[links.length-1].sec : null);
+    openModal("Ajouter un favori");
+  }
+  function openEdit(id){
+    const l = links.find(x => x.id === id); if(!l) return;
+    editingId = id;
+    f_name.value = l.name; f_url.value = l.url; f_desc.value = l.desc || ""; f_sec_new.value = "";
+    populateCats(l.sec);
+    openModal("Modifier le favori");
+  }
+  function closeModal(){ overlay.classList.remove("open"); }
+  function saveForm(){
+    const name = f_name.value.trim(), url = f_url.value.trim(), desc = f_desc.value.trim();
+    let sec = f_sec.value === "__new__" ? f_sec_new.value.trim() : f_sec.value;
+    sec = sec || "Autres";
+    if(!name || !url){ alert("Il faut au moins un nom et une adresse."); return; }
+    if(f_sec.value === "__new__" && !sec){ alert("Donne un nom à la nouvelle catégorie."); return; }
+    if(editingId){
+      const l = links.find(x => x.id === editingId);
+      Object.assign(l, { name, url, sec, desc, domain: domainOf(url) });
+    } else {
+      links.push({ id: uid(), name, url, sec, desc, domain: domainOf(url) });
+    }
+    save(); render(); closeModal();
+  }
+
+  // ── Export / Import ──
+  function exportLinks(){
+    const blob = new Blob([JSON.stringify(links, null, 2)], { type:"application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = "dev-favoris.json"; a.click();
+    URL.revokeObjectURL(a.href);
+  }
+  function importLinks(file){
+    const r = new FileReader();
+    r.onload = () => {
+      try{
+        const a = JSON.parse(r.result);
+        if(!Array.isArray(a)) throw 0;
+        a.forEach(l => l.id ||= uid());
+        links = a; save(); render(); alert("Favoris importés ✔");
+      }catch{ alert("Fichier invalide."); }
+    };
+    r.readAsText(file);
+  }
+
+  // ── Branchements ──
+  addBtn.onclick = openAdd;
+  saveBtn.onclick = saveForm;
+  cancelBtn.onclick = closeModal;
+  f_sec.onchange = toggleNewCat;
+  overlay.onclick = e => { if(e.target === overlay) closeModal(); };
+  document.addEventListener("keydown", e => { if(e.key === "Escape") closeModal(); });
+  editBtn.onclick = () => {
+    const on = document.body.classList.toggle("editing");
+    editBtn.textContent = on ? "Terminé" : "Modifier";
+    editBtn.classList.toggle("primary", on);
+  };
+  exportBtn.onclick = exportLinks;
+  importBtn.onclick = () => importFile.click();
+  importFile.onchange = e => { if(e.target.files[0]) importLinks(e.target.files[0]); };
+
+  // Bonjour + date
+  const now = new Date();
+  const j = now.toLocaleDateString("fr-FR", { weekday:"long", day:"numeric", month:"long" });
+  const h = now.getHours();
+  const salut = h < 6 ? "Bonne nuit" : h < 12 ? "Bonjour" : h < 18 ? "Bon après-midi" : "Bonsoir";
+  document.getElementById("hello").innerHTML =
+    `${salut} — <b>${j}</b>. Clique un outil pour l'ouvrir (même profil Chrome, aucune reconnexion).`;
+
+  render();
+</script>
+</body>
+</html>
