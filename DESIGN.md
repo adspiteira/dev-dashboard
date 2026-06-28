@@ -29,9 +29,15 @@ Launchpad de favoris perso (GitHub Pages). Direction : **cyberpunk, bleu électr
 - ✅ **P3 sous-titre mobile** : header en `display:block` sous 560 px → titre/sous-titre/toolbar s'empilent et s'enroulent proprement.
 - ✅ **P1 badge suppression « coupé »** (mode édition) : `.del` était en `top/right:-7px` (hors carte) → le `clip-path` de `.card` **rognait** la partie qui dépasse. Refait en **rond rouge** (`border-radius:50%`) rentré à `top:7px/right:8px`, dans la zone non rognée + halo de focus clavier. Bonus : colle enfin au texte d'aide « le **rond rouge** pour supprimer ».
 - ✅ **P2 badge ↔ titre long** (régression du fix ci-dessus) : le rond rentré tombait sur la ligne du titre → sur un nom long (« Roadmap CongéLink ») il **chevauchait** le texte. Corrigé : `body.editing .meta{padding-right:30px}` réserve la place du badge **en mode édition seulement** → le titre se coupe/espace avant le rond.
+- ✅ **Esthétique du bouton de suppression** : le rond rouge plein « faisait tache » (action rare/destructive qui criait en permanence) ET un **rond jurait** avec le système tout anguleux. Refait après comparaison de 3 pistes en images : **au repos un simple `×` gris** (couleur `--muted`, discret), **au survol/focus une petite puce biseautée rouge** (`clip-path` comme les icônes, contour via `box-shadow` inset → propre malgré le clip-path + focus clavier visible). Le rouge n'apparaît qu'au moment d'agir. Piste retenue **B « anguleux »** (× monochrome discret mais trouvable) — A (fantôme) et C (onglet) écartées.
+
+## Pistes écartées (badge suppression)
+- **A — fantôme** (anneau rouge quasi effacé au repos) : trop discret, risque de ne pas voir qu'on peut supprimer.
+- **C — onglet biseauté rouge sombre** : stylé mais reste un peu rouge au repos (moins calme que B).
+- **Rond (border-radius:50%)** sous toutes ses formes : **corps étranger** dans un système 100 % anguleux (cartes/icônes biseautées). Ne pas y revenir.
 
 ## Dette design — OUVERTE
-- 🟡 **Esthétique du bouton de suppression** : le **rond rouge plein** « fait tache » — action **rare et destructive** qui crie en permanence, l'œil fonce dessus, registre brutal qui jure avec le reste (anguleux, traits fins, néon maîtrisé). Mécaniquement OK, mais à **repenser** : le destructif devrait être **discret au repos** et net seulement au **survol/focus** de la carte. Pistes à comparer en images (frontend-design) : (a) ghost/outline rouge fin révélé au survol ; (b) petit « × » monochrome discret, rouge seulement au survol ; (c) marqueur d'angle anguleux cohérent avec le biseau. **À trancher avec l'utilisateur** (goût cyberpunk bleu, accent déjà dépensé sur la signature).
+_(aucune pour l'instant)_
 
 ## Note technique (piège à connaître)
 **`clip-path` rogne aussi les ENFANTS qui débordent**, pas seulement le focus. Un badge d'angle / tooltip en position absolue avec offset négatif sur une carte biseautée sera **tranché** — il faut le garder *dedans*, ou retirer le `clip-path` du parent.
