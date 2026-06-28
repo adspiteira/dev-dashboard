@@ -54,6 +54,16 @@
     color:var(--muted);margin-bottom:16px;display:flex;align-items:center;gap:9px}
   .section h2::before{content:"//";color:var(--sec,var(--cyan));font-weight:700;text-shadow:0 0 9px var(--sec,var(--cyan))}
   .section h2::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--border),transparent)}
+  .secmove{order:1;display:none;gap:5px;flex:0 0 auto}
+  body.editing .secmove{display:flex}
+  .secbtn{font-family:var(--mono);width:28px;height:28px;display:grid;place-items:center;padding:0;
+    background:var(--panel);color:var(--muted);border:1px solid var(--border);cursor:pointer;font-size:12px;line-height:1;
+    clip-path:polygon(0 0,calc(100% - 6px) 0,100% 6px,100% 100%,0 100%);
+    transition:color .14s,background .14s,box-shadow .14s}
+  .secbtn:hover:not(:disabled){color:var(--sec,var(--cyan));background:#101a2c;
+    box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--sec,var(--cyan)) 55%,transparent)}
+  .secbtn:focus-visible{outline:none;color:var(--sec,var(--cyan));box-shadow:inset 0 0 0 2px var(--sec,var(--cyan))}
+  .secbtn:disabled{opacity:.3;cursor:default}
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(238px,1fr));gap:13px}
   .card{position:relative;display:flex;align-items:flex-start;gap:14px;background:var(--panel);
     border:1px solid var(--border);padding:15px 17px 15px 18px;text-decoration:none;color:inherit;
@@ -353,7 +363,13 @@
       const section = document.createElement("section");
       section.className = "section";
       section.style.setProperty("--sec", PALETTE[ci % PALETTE.length]);
-      section.innerHTML = `<h2>${esc(sec)}</h2>`;
+      const last = cats.length - 1;
+      section.innerHTML = `<h2>${esc(sec)}<span class="secmove">`
+        + `<button type="button" class="secbtn" data-move="up" data-sec="${esc(sec)}" title="Monter la catégorie"`
+        +   ` aria-label="Monter la catégorie ${esc(sec)}"${ci === 0 ? " disabled" : ""}>▲</button>`
+        + `<button type="button" class="secbtn" data-move="down" data-sec="${esc(sec)}" title="Descendre la catégorie"`
+        +   ` aria-label="Descendre la catégorie ${esc(sec)}"${ci === last ? " disabled" : ""}>▼</button>`
+        + `</span></h2>`;
       const grid = document.createElement("div");
       grid.className = "grid";
       links.filter(l => l.sec === sec).forEach(l => {
@@ -383,6 +399,25 @@
     const l = links.find(x => x.id === id);
     if(l && confirm(`Supprimer « ${l.name} » ?`)){
       links = links.filter(x => x.id !== id); saveCache(); setDirty(true); render(); syncIfConnected();
+    }
+  }
+
+  // Déplace une catégorie entière d'un cran (dir = -1 monter, +1 descendre).
+  // L'ordre des catégories = l'ordre d'apparition dans `links` ; on échange les deux blocs
+  // voisins en gardant l'ordre interne des cartes. L'ordre est persisté tel quel par la synchro.
+  function moveSection(sec, dir){
+    const cats = [...new Set(links.map(l => l.sec))];
+    const i = cats.indexOf(sec), j = i + dir;
+    if(i < 0 || j < 0 || j >= cats.length) return;
+    [cats[i], cats[j]] = [cats[j], cats[i]];
+    links = cats.flatMap(c => links.filter(l => l.sec === c));
+    saveCache(); setDirty(true); render(); syncIfConnected();
+    // garde le focus sur la flèche déplacée (enchaînement au clavier) ; si elle est désormais
+    // désactivée (catégorie au bord), bascule sur l'autre flèche de la même section.
+    const moved = board.querySelectorAll(".section")[j];
+    if(moved){
+      const want = moved.querySelector(`.secbtn[data-move="${dir < 0 ? "up" : "down"}"]`);
+      (want && !want.disabled ? want : moved.querySelector(".secbtn:not(:disabled)"))?.focus();
     }
   }
 
@@ -457,6 +492,12 @@
   exportBtn.onclick = exportLinks;
   importBtn.onclick = () => importFile.click();
   importFile.onchange = e => { if(e.target.files[0]) importLinks(e.target.files[0]); };
+
+  // Flèches de réordonnancement des catégories (déléguées : le contenu de #board est re-rendu).
+  board.addEventListener("click", e => {
+    const b = e.target.closest(".secbtn");
+    if(b) moveSection(b.dataset.sec, b.dataset.move === "up" ? -1 : 1);
+  });
 
   ghBtn.onclick = () => {
     // si la dernière sauvegarde a juste échoué (hors auth), un clic RÉESSAIE de pousser le local — il n'ouvre PAS la reconnexion

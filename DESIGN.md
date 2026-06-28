@@ -16,6 +16,15 @@ Launchpad de favoris perso (GitHub Pages). Direction : **cyberpunk, bleu électr
 - En ligne (source de re-capture) : https://adspiteira.github.io/dev-dashboard/
 - Captures de session (éphémères) : desktop + mobile, avant/après le correctif cartes du 28/06.
 
+## Réordonnancement des catégories (28 juin 2026)
+- **Besoin** : pouvoir remonter/descendre une catégorie facilement (ex. mettre « Mes roadmaps » en tête).
+- **Choix d'interaction** : **flèches ▲▼ sur l'en-tête de catégorie, visibles en mode édition seulement** (comparé en images à : flèches + bouton « ↥ tout en haut », et glisser-déposer). Retenu pour la **robustesse** (zéro dépendance, clavier + tactile, dans le style anguleux) sur une action **rare**. DnD écarté (sur-dimensionné/fragile pour un tri rare) ; le « ↥ » écarté (peu de catégories → 2-3 clics suffisent).
+- **Mécanique** : l'ordre des catégories = **ordre d'apparition dans le tableau plat `links`**. `moveSection(sec,dir)` échange deux blocs voisins en **préservant l'ordre interne** des cartes (`cats.flatMap(c => links.filter(...))`). L'ordre est **persisté tel quel** par la synchro existante (`serialize()` garde l'ordre du tableau) — aucun nouveau stockage.
+- **Détails soignés** : flèches `.secbtn` biseautées (`clip-path`), discrètes (`--muted`) au repos, accent `--sec` au survol/focus ; **focus clavier en `box-shadow` inset** (pas d'`outline`, sinon coupé par le `clip-path`) ; flèche désactivée (`disabled`, opacity .3) aux bords ; placées après le trait `::after` (flex:1) via `order:1` → alignées à droite ; **refocus de la flèche après re-render** pour enchaîner au clavier.
+- **Vérifié sur images** : édition desktop + mobile (flèches au bord droit, bornes désactivées, pas de débordement), état normal (flèches absentes, vue propre) ; logique testée hors-ligne (réordonnancement, ordre interne, bornes no-op, aucune carte perdue).
+- ⚪ **Effet de bord assumé** : le liseré de couleur suit la **position** (`PALETTE[ci]`), pas le nom — réordonner **décale les couleurs** (Roadmaps en tête → liseré cyan au lieu de magenta). Cohérent (chaque section reste distincte). Si gênant un jour : dériver `--sec` d'un **hash du nom** de catégorie (mais ça change les couleurs actuelles).
+- ⚪ **Cibles tactiles** : flèches à 28 px (< 44 px recommandé). Acceptable pour une action rare en mode édition ; à agrandir si usage mobile fréquent.
+
 ## Plancher qualité — état vérifié (28 juin 2026)
 - **responsive mobile** : VU — corrigé le 28/06 (cartes empilées, plus de débordement).
 - **focus clavier** : VU dans le code — piège `clip-path` **traité** (cartes en `box-shadow` inset ; boutons non biseautés en `outline`).
