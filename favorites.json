@@ -94,5 +94,11 @@
     "name": "Multipop",
     "url": "https://github.com/adspiteira/multipop/blob/main/ROADMAP.md",
     "desc": ""
+  },
+  {
+    "sec": "Code & déploiement",
+    "name": "Claude.ai",
+    "url": "https://claude.ai/new",
+    "desc": ""
   }
 ]
